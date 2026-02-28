@@ -1,0 +1,5 @@
+.wenv
+.env
+emails.json
+.md
+*.pyc
