@@ -1,7 +1,11 @@
+import logging
 import os
-from twilio.rest import Client
-from twilio.base.exceptions import TwilioRestException
+
 from dotenv import load_dotenv
+from twilio.base.exceptions import TwilioRestException
+from twilio.rest import Client
+
+logger = logging.getLogger(__name__)
 
 class WhatsAppClient:
     def __init__(self):
@@ -12,6 +16,7 @@ class WhatsAppClient:
         if not self.account_sid or not self.auth_token:
             raise ValueError("ACCOUNT_SID or AUTH_TOKEN is missing in .env")
         self.client = Client(self.account_sid, self.auth_token)
+        logger.info("WhatsApp client initialized.")
 
     @staticmethod
     def _normalize_number(number):
@@ -35,6 +40,7 @@ class WhatsAppClient:
                 from_=f"whatsapp:{clean_from}",
                 to=f"whatsapp:{clean_to}"
             )
+            logger.info("Twilio message created successfully. SID=%s", message.sid)
             return {
                 "sid": message.sid,
                 "status": message.status,
@@ -43,6 +49,7 @@ class WhatsAppClient:
                 "is_sandbox": self._is_sandbox_sender(),
             }
         except TwilioRestException as exc:
+            logger.exception("Twilio API request failed: %s", exc)
             return {
                 "sid": None,
                 "status": "failed",

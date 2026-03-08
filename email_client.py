@@ -1,11 +1,14 @@
 import email
 import imaplib
+import logging
 import os
 from datetime import datetime
 from email.header import decode_header
 
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 
 class EmailClient:
@@ -23,14 +26,15 @@ class EmailClient:
                 raise ValueError("EMAIL, APP_PASSWORD, or IMAP_SERVER missing in .env")
             self.connection = imaplib.IMAP4_SSL(self.imap_server)
             self.connection.login(self.email, self.password)
-            print("Connected to IMAP server.")
+            logger.info("Connected to IMAP server.")
         except Exception as exc:
-            print("Connection failed:", exc)
+            logger.exception("Connection failed: %s", exc)
             self.connection = None
 
     def fetch_unseen_emails(self):
         """Fetch today's unseen emails from Gmail Primary category."""
         if not self.connection:
+            logger.warning("No IMAP connection available. Skipping fetch.")
             return []
 
         self.connection.select("INBOX")
@@ -40,14 +44,15 @@ class EmailClient:
             f'(UNSEEN SINCE {today} X-GM-RAW "category:primary")',
         )
         if status != "OK":
-            print("Error searching emails.")
+            logger.error("Error searching emails. IMAP status: %s", status)
             return []
 
         email_ids = messages[0].split()
         if not email_ids:
-            print("No unseen primary emails for today.")
+            logger.info("No unseen primary emails for today.")
             return []
 
+        logger.info("Found %d unseen email(s).", len(email_ids))
         email_list = []
         for email_id in email_ids:
             _, msg_data = self.connection.fetch(email_id, "(RFC822)")
@@ -57,6 +62,7 @@ class EmailClient:
                     email_list.append(self._extract_email_data(msg))
             self.connection.store(email_id, "+FLAGS", "\\Seen")
 
+        logger.info("Fetched and marked %d email(s) as seen.", len(email_list))
         return email_list
 
     def _extract_email_data(self, msg):
@@ -107,4 +113,4 @@ class EmailClient:
         if self.connection:
             self.connection.close()
             self.connection.logout()
-            print("IMAP connection closed.")
+            logger.info("IMAP connection closed.")

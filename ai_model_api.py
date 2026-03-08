@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import List
 
@@ -5,6 +6,7 @@ import requests
 from dotenv import load_dotenv
 
 load_dotenv()
+logger = logging.getLogger(__name__)
 
 
 class AISummarizer:
@@ -27,6 +29,7 @@ class AISummarizer:
             return "No content to summarize."
 
         if not self.token:
+            logger.warning("HUGGING_FACE_TOKEN missing. Using trimmed raw text fallback.")
             return self._trim_words(email_body, self.output_word_limit)
 
         headers = {"Authorization": f"Bearer {self.token}"}
@@ -55,6 +58,7 @@ class AISummarizer:
                 else:
                     summaries.append(chunk)
             except Exception:
+                logger.exception("Summarization API call failed for one chunk. Using raw chunk.")
                 summaries.append(chunk)
 
         final = " ".join(summaries)
