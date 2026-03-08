@@ -1,5 +1,7 @@
 .wenv
-.env
-emails.json
 .md
 *.pyc
+credentials
+.env
+__pycache__/
+logs/
